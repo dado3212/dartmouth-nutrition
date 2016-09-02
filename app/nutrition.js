@@ -10,17 +10,19 @@ const main = {
   resolveWithFullResponse: true,
 };
 
+/*
+  NutritionHandler
+
+  - get available locations
+  - get current configuration
+  - connect to a specific location
+  - get menus
+  - get food items
+*/
 class NutritionHandler {
   constructor() {
-    this.dds = null;
-  }
-
-  get area() {
-    return this.calcArea();
-  }
-
-  calcArea() {
-    return 3;
+    this.sids = {};
+    this.currentLocation = null;
   }
 
   /*
@@ -48,56 +50,69 @@ class NutritionHandler {
     });
   }
 
-  /*
-    Generates an SID token for future requests in the given location
-  */
+  // Connects/switches to a SID token for the corresponding location
   connect(location) {
-    main.body.method = 'create_context';
-    main.body.params = [location];
+    if (location in this.sids) {
+      this.currentLocation = location;
+      return this.sids[location];
+    } else {
+      main.body.method = 'create_context';
+      main.body.params = [location];
 
-    return rp(main)
-    .then(response => {
-      return response.body.result.sid;
-    })
-    .catch(err => {
+      return rp(main)
+      .then(response => {
+        this.sids[location] = response.body.result.sid;
+        this.currentLocation = location;
+        return this.sids[location];
+      })
+      .catch(err => {
+        return null;
+      });
+    }
+  }
+
+  // Gets the current location
+  get current() {
+    return this.currentLocation;
+  }
+
+  /*
+    Gets the CWP settings
+    - rounding
+    - allergen display
+    - ingredient list
+    - "start with waag"
+    - report footer
+    - show only on elocation
+    - display
+    - hide nutrients
+  */
+  getSettings() {
+    if (this.currentLocation) {
+      main.body.method = 'get_cwp_settings';
+      main.body.params = [
+        {
+          sid: this.sids[this.currentLocation],
+        },
+        {
+          remoteProcedure: 'get_cwp_settings',
+        },
+      ];
+
+      return rp(main)
+      .then(response => {
+        return response.body.result;
+      })
+      .catch(err => {
+        return null;
+      });
+    } else {
       return null;
-    });
+    }
   }
 }
 
 export default NutritionHandler;
-
-/*
-  Gets the CWP settings
-  - rounding
-  - allergen display
-  - ingredient list
-  - "start with waag"
-  - report footer
-  - show only on elocation
-  - display
-  - hide nutrients
-*/
-export const settings = (req, res) => {
-  main.body.method = 'get_cwp_settings';
-  main.body.params = [
-    {
-      sid: 'DDS.4ef6cc52093e2da095f926af6a241154',
-    },
-    {
-      remoteProcedure: 'get_cwp_settings',
-    },
-  ];
-
-  rp(main)
-  .then(response => {
-    res.send('Success!');
-    console.log(response.body.result);
-  })
-  .catch(err => {
-    res.send('Error');
-  });
-};
 
 /*
   Gets the list of Menus (Menu section on website)

@@ -17,12 +17,18 @@ app.use(bodyParser.json());
 
 // default index route
 app.get('/', (req, res) => {
-  const a = new NutritionHandler();
-  a.getLocations().then(locations => {
-    console.log(locations);
-  });
-  a.connect('DDS').then(id => {
-    console.log(id);
+  const handler = new NutritionHandler();
+
+  // Get all available locations
+  handler.getLocations().then(locations => {
+    // Connect to the first location
+    handler.connect(locations[0][0]).then(id => {
+      console.log(handler.current);
+      // Get a list of menus
+      handler.getSettings().then(settings => {
+        console.log(settings);
+      })
+    });
   });
   res.send('Test');
 });
