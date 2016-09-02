@@ -2,6 +2,8 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
 
+import NutritionHandler from './nutrition';
+
 // initialize
 const app = express();
 
@@ -15,7 +17,14 @@ app.use(bodyParser.json());
 
 // default index route
 app.get('/', (req, res) => {
-  res.send('hi');
+  const a = new NutritionHandler();
+  a.getLocations().then(locations => {
+    console.log(locations);
+  });
+  a.connect('DDS').then(id => {
+    console.log(id);
+  });
+  res.send('Test');
 });
 
 // START THE SERVER
