@@ -2,7 +2,7 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
 
-import NutritionHandler from './nutrition';
+import { NutritionHandler } from './nutrition';
 
 // initialize
 const app = express();
@@ -23,11 +23,20 @@ app.get('/', (req, res) => {
   handler.getLocations().then(locations => {
     // Connect to the first location
     handler.connect(locations[0][0]).then(id => {
-      console.log(handler.current);
       // Get a list of menus
-      handler.getSettings().then(settings => {
-        console.log(settings);
-      })
+      handler.getMenus().then(menus => {
+        // Get a list of meals
+        handler.getMeals().then(meals => {
+          // Connect to a specific menu (for the current date)
+          handler.chooseMenu(menus[0][0], meals['1'][0]).then(menu => {
+            const item = menu.item(menu.items[0][0]);
+            console.log(item.title());
+            item.getSubIngredients().then(ing => {
+              console.log(ing);
+            });
+          });
+        });
+      });
     });
   });
   res.send('Test');
