@@ -23,12 +23,13 @@ app.get('/', async (req, res) => {
   await handler.connect(locations[0]);
 
   const menus = await handler.getMenus();
-  const meals = await handler.getMeals();
-  const menu = await handler.chooseMenu(menus[0].menu_id, meals[1].meal_id);
+  const times = await handler.getTimes();
+  const menu = await handler.chooseMenu(menus[0].menu_id, getTimes[1].meal_id);
 
   const item = menu.items[0];
   const subIngredients = await item.getSubIngredients();
   const nutrition = await item.getNutritionFacts();
+  const allergens = await item.getAllergens();
   res.send('Test');
 });
 

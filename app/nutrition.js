@@ -276,7 +276,7 @@ class NutritionHandler {
     '1': [ 1, 1, 'Breakfast', 'Breakfast', 'BRK', 700, 1000 ]
     Name, again?, appreviation, cost/calories?
   */
-  getMeals() {
+  getTimes() {
     if (this.currentLocation) {
       main.body.method = 'get_webmenu_meals_list';
       main.body.params = [
