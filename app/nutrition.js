@@ -10,30 +10,50 @@ const main = {
   resolveWithFullResponse: true,
 };
 
+class Location {
+  constructor(location_object) {
+    this.code = location_object[0];
+    this.name = location_object[1];
+  }
+}
+
+class WebMenu {
+  constructor(webmenu_object) {
+    this.menu_id = webmenu_object[0];
+    // 1 is an incrementing number of IDs
+    // 2 is 0 again
+    this.name = webmenu_object[3];
+  }
+}
+
+class WebMeal {
+  constructor(webmeal_object) {
+    this.meal_id = webmeal_object[0];
+    this.name = webmeal_object[2];
+    this.code = webmeal_object[4];
+  }
+}
+
 class Item {
-  constructor(menuId, item, sid) {
+  constructor(menuId, sid, item) {
     this.menuId = menuId;
-    this.item = item;
     this.sid = sid;
+
+    this.title = item[0];
+    this.category = item[1][0];
+    this.recipeId = item[1][3];
+    this.mmrRank = item[1][4];
   }
 
-  title() {
-    return this.item[0];
-  }
-
-  category() {
-    return this.item[1][0];
-  }
-
-  getNutrition() {
+  getNutritionFacts() {
     main.body.method = 'get_nutrient_label_items';
     main.body.params = [
       { sid: this.sid },
       JSON.stringify({
         remoteProcedure: 'get_nutrient_label_items',
         mm_id: this.menuId,
-        recipe_id: this.item[1][3],
-        mmr_rank: 1,
+        recipe_id: -this.recipeId,
+        mmr_rank: this.mmrRank,
         rule: 'fda', // 'fda|raw' to get unrounded values (due to cwp settings)
         output: 'dictionary',
         options: 'facts',
@@ -61,7 +81,7 @@ class Item {
       { sid: this.sid },
       JSON.stringify({
         remoteProcedure: 'get_recipe_sub_ingredients',
-        recipeId: this.item[1][3],
+        recipeId: this.recipeId,
       }),
     ];
 
@@ -81,7 +101,7 @@ class Item {
       { sid: this.sid },
       JSON.stringify({
         remoteProcedure: 'get_recipe_allergen_list',
-        recipeId: this.item[1][3],
+        recipeId: this.recipeId,
       }),
     ];
 
@@ -101,6 +121,10 @@ class Menu {
     this.items = items;
     this.id = id;
     this.sid = sid;
+
+    this.items = items.map(item => {
+      return new Item(this.id, this.sid, item);
+    });
   }
 
   items() {
@@ -109,18 +133,6 @@ class Menu {
 
   categories() {
     return this.categories;
-  }
-
-  item(name) {
-    const foundItem = this.items.filter(item => {
-      return (item[0] === name);
-    });
-
-    if (foundItem) {
-      return new Item(this.id, foundItem[0], this.sid);
-    } else {
-      return null;
-    }
   }
 }
 
@@ -157,7 +169,9 @@ class NutritionHandler {
 
     return rp(main)
     .then(response => {
-      return response.body.result.result;
+      return response.body.result.result.map(sid => {
+        return new Location(sid);
+      });
     })
     .catch(err => {
       return null;
@@ -166,18 +180,16 @@ class NutritionHandler {
 
   // Connects/switches to a SID token for the corresponding location
   connect(location) {
-    if (location in this.sids) {
-      this.currentLocation = location;
-      return this.sids[location];
+    if (location.code in this.sids) {
+      this.currentLocation = location.code;
     } else {
       main.body.method = 'create_context';
-      main.body.params = [location];
+      main.body.params = [location.code];
 
       return rp(main)
       .then(response => {
-        this.sids[location] = response.body.result.sid;
-        this.currentLocation = location;
-        return this.sids[location];
+        this.sids[location.code] = response.body.result.sid;
+        this.currentLocation = location.code;
       })
       .catch(err => {
         return null;
@@ -245,7 +257,9 @@ class NutritionHandler {
 
       return rp(main)
       .then(response => {
-        return response.body.result.menus_list;
+        return response.body.result.menus_list.map(webmenu => {
+          return new WebMenu(webmenu);
+        });
       })
       .catch(err => {
         return null;
@@ -276,7 +290,9 @@ class NutritionHandler {
 
       return rp(main)
       .then(response => {
-        return response.body.result.meals_list;
+        return Object.values(response.body.result.meals_list).map(webmeal => {
+          return new WebMeal(webmeal);
+        });
       })
       .catch(err => {
         return null;

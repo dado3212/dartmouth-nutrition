@@ -16,35 +16,25 @@ app.use(bodyParser.json());
 
 
 // default index route
-app.get('/', (req, res) => {
+app.get('/', async (req, res) => {
   const handler = new NutritionHandler();
 
-  // Get all available locations
-  handler.getLocations().then(locations => {
-    // Connect to the first location
-    handler.connect(locations[0][0]).then(id => {
-      // Get a list of menus
-      handler.getMenus().then(menus => {
-        // Get a list of meals
-        handler.getMeals().then(meals => {
-          // Connect to a specific menu (for the current date)
-          handler.chooseMenu(menus[0][0], meals['1'][0]).then(menu => {
-            const item = menu.item(menu.items[0][0]);
-            console.log(item.title());
-            item.getSubIngredients().then(ing => {
-              console.log(ing);
-            });
-          });
-        });
-      });
-    });
-  });
+  const locations = await handler.getLocations();
+  await handler.connect(locations[0]);
+
+  const menus = await handler.getMenus();
+  const meals = await handler.getMeals();
+  const menu = await handler.chooseMenu(menus[0].menu_id, meals[1].meal_id);
+
+  const item = menu.items[0];
+  const subIngredients = await item.getSubIngredients();
+  const nutrition = await item.getNutritionFacts();
   res.send('Test');
 });
 
 // START THE SERVER
 // =============================================================================
-const port = process.env.PORT || 9090;
+const port = process.env.PORT || 1010;
 app.listen(port);
 
 console.log(`listening on: ${port}`);
